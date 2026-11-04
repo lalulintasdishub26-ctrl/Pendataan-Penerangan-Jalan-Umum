@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Pendataan Lampu Jalan</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 500px; background: white; padding: 25px; margin: 0 auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; color: #444; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .coordinate-container { display: flex; gap: 10px; margin-top: 5px; }
+        .coordinate-container input { background-color: #f9f9f9; }
+        .btn-gps { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; }
+        .btn-gps:hover { background-color: #0056b3; }
+        .status { color: #666; font-style: italic; margin-top: 5px; font-size: 13px; }
+        .btn-submit { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
+        .btn-submit:hover { background-color: #218838; }
+        .btn-submit:disabled { background-color: #cccccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Pendataan Lampu Jalan</h2>
+    
+    <form id="formLampu">
+        <div class="form-group">
+            <label for="nama_jalan">Uraian Nama Jalan:</label>
+            <input type="text" id="nama_jalan" name="nama_jalan" required placeholder="Contoh: Jl. Merdeka No. 12">
+        </div>
+
+        <div class="form-group">
+            <label>Titik Koordinat:</label>
+            <button type="button" class="btn-gps" onclick="ambilKoordinat()">📍 Ambil Koordinat Otomatis</button>
+            <div id="status" class="status">Belum mengambil lokasi.</div>
+            
+            <div class="coordinate-container">
+                <div>
+                    <span style="font-size: 12px; color: #666;">Latitude</span>
+                    <input type="text" id="latitude" name="latitude" readonly placeholder="Otomatis..." required>
+                </div>
+                <div>
+                    <span style="font-size: 12px; color: #666;">Longitude</span>
+                    <input type="text" id="longitude" name="longitude" readonly placeholder="Otomatis..." required>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="jenis_lampu">Jenis Lampu:</label>
+            <select id="jenis_lampu" name="jenis_lampu" required>
+                <option value="" disabled selected>-- Pilih Jenis Lampu --</option>
+                <option value="SON-T 150W">SON-T 150W</option>
+                <option value="SON-T 70W">SON-T 70W</option>
+                <option value="LED Merah/Silver Persegi">LED Merah/Silver Persegi</option>
+                <option value="LED Merah Oval">LED Merah Oval</option>
+                <option value="LED Silver Pendek">LED Silver Pendek</option>
+                <option value="LED Silver Panjang">LED Silver Panjang</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="jumlah_lampu">Jumlah Lampu:</label>
+            <input type="number" id="jumlah_lampu" name="jumlah_lampu" min="1" required placeholder="Masukkan jumlah lampu">
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-submit">Simpan ke Google Sheets</button>
+    </form>
+</div>
+
+<script>
+    // MASUKKAN URL WEB APP GOOGLE ANDA DI SINI
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxYbX7jD-zJxqXWTawOF8wkD2PorQ7QNA7D3Gtxpnn0rCuQ1jIjfHKKyRSP6tOYS6h0/exec';
+    const form = document.getElementById('formLampu');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function ambilKoordinat() {
+        const statusText = document.getElementById("status");
+        const latInput = document.getElementById("latitude");
+        const lonInput = document.getElementById("longitude");
+
+        if (!navigator.geolocation) {
+            statusText.innerText = "Browser tidak mendukung fitur lokasi.";
+            statusText.style.color = "red";
+            return;
+        }
+
+        statusText.innerText = "Mendeteksi GPS...";
+        statusText.style.color = "#666";
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                latInput.value = position.coords.latitude;
+                lonInput.value = position.coords.longitude;
+                statusText.innerText = "Lokasi berhasil dikunci! ✅";
+                statusText.style.color = "green";
+            },
+            (error) => {
+                statusText.style.color = "red";
+                statusText.innerText = "Gagal mengambil lokasi. Pastikan izin lokasi aktif.";
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+
+    // Proses pengiriman data ke Google Sheets secara background (AJAX/Fetch)
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sedang Menyimpan...';
+
+        fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+            .then(response => {
+                alert("Sukses! Data berhasil masuk ke Google Sheets.");
+                form.reset();
+                document.getElementById("status").innerText = "Belum mengambil lokasi.";
+                document.getElementById("status").style.color = "#666";
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Simpan ke Google Sheets';
+            })
+            .catch(error => {
+                alert("Gagal menyimpan data! Periksa koneksi internet Anda.");
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Simpan ke Google Sheets';
+            });
+    });
+</script>
+
+</body>
+</html>
